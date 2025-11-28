@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>StoryClash – CLI Tool Dokumentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background: #f9f9f9; }
+        header { background: #222; color: white; padding: 1em 2em; }
+        h1, h2, h3 { margin-top: 1em; }
+        section { padding: 1em 2em; background: white; margin: 1em 2em; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+        code { background: #eee; padding: 2px 4px; border-radius: 3px; }
+        pre { background: #eee; padding: 1em; border-radius: 5px; overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+        th { background: #f0f0f0; }
+        nav a { color: #fff; margin-right: 1em; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>StoryClash – CLI Tool Dokumentation</h1>
+    <nav>
+        <a href="#overview">Übersicht</a>
+        <a href="#installation">Installation</a>
+        <a href="#cli">CLI Usage</a>
+        <a href="#structure">Projektstruktur</a>
+        <a href="#db">Datenbank</a>
+        <a href="#classes">Klassen & Methoden</a>
+        <a href="#examples">Beispiele</a>
+    </nav>
+</header>
+
+<section id="overview">
+    <h2>Projektübersicht</h2>
+    <p>
+        <strong>StoryClash</strong> ist ein PHP-CLI-Tool, das es ermöglicht, einzelne Feeds aus einer Produktionsdatenbank
+        in eine Entwicklungs- oder Testumgebung zu kopieren. Optional können zusätzliche Quellen und eine definierte
+        Anzahl von Posts kopiert werden.
+    </p>
+</section>
+
+<section id="installation">
+    <h2>Installation & Setup</h2>
+    <pre><code>git clone https://github.com/TheSMAX/StoryClash.git
+cd StoryClash
+composer install
+chmod +x bin/copy
+</code></pre>
+    <p>Datenbank konfigurieren in <code>src/Database.php</code> oder über Environment Variables:</p>
+    <ul>
+        <li><code>DATABASE_URL</code> z. B. <code>mysql:host=127.0.0.1;dbname=prod;charset=utf8mb4</code></li>
+        <li><code>DATABASE_USER</code> & <code>DATABASE_PASS</code> für MySQL-Zugang</li>
+    </ul>
+</section>
+
+<section id="cli">
+    <h2>CLI Usage</h2>
+    <pre><code>./bin/copy &lt;feedId&gt;
+./bin/copy --only=instagram &lt;feedId&gt;
+./bin/copy --only=tiktok &lt;feedId&gt;
+./bin/copy --only=instagram --include-posts=5 &lt;feedId&gt;</code></pre>
+
+    <h3>Optionen</h3>
+    <table>
+        <tr><th>Option</th><th>Beschreibung</th></tr>
+        <tr><td>--only=instagram|tiktok</td><td>Kopiert nur die jeweilige Source-Tabelle. Standard: beide.</td></tr>
+        <tr><td>--include-posts=&lt;num&gt;</td><td>Kopiert zusätzlich &lt;num&gt; Posts für den Feed. Standard: 0.</td></tr>
+        <tr><td>-h, --help</td><td>Zeigt Hilfe an.</td></tr>
+    </table>
+</section>
+
+<section id="structure">
+    <h2>Projektstruktur</h2>
+    <pre><code>StoryClash/
+├─ bin/
+│  └─ copy
+├─ src/
+│  ├─ Command/
+│  │  └─ CopyFeedCommand.php
+│  ├─ Repository/
+│  │  ├─ FeedRepository.php
+│  │  ├─ InstagramRepository.php
+│  │  ├─ TikTokRepository.php
+│  │  └─ PostRepository.php
+│  ├─ Service/
+│  │  └─ FeedCopyService.php
+│  └─ Database.php
+├─ tests/
+│  ├─ Command/CopyFeedCommandTest.php
+│  └─ Service/FeedCopyServiceTest.php
+├─ composer.json
+├─ phpunit.xml
+└─ README.md
+</code></pre>
+</section>
+
+<section id="db">
+    <h2>Datenbankstruktur</h2>
+    <h3>feeds</h3>
+    <table>
+        <tr><th>Spalte</th><th>Typ</th><th>Beschreibung</th></tr>
+        <tr><td>id</td><td>INT</td><td>Primärschlüssel</td></tr>
+        <tr><td>name</td><td>VARCHAR</td><td>Name des Influencers</td></tr>
+    </table>
+
+    <h3>instagram_sources / tiktok_sources</h3>
+    <table>
+        <tr><th>Spalte</th><th>Typ</th><th>Beschreibung</th></tr>
+        <tr><td>feed_id</td><td>INT</td><td>FK auf feeds.id</td></tr>
+        <tr><td>name</td><td>VARCHAR</td><td>Handle</td></tr>
+        <tr><td>fan_count</td><td>INT</td><td>Anzahl Fans</td></tr>
+    </table>
+
+    <h3>posts</h3>
+    <table>
+        <tr><th>Spalte</th><th>Typ</th><th>Beschreibung</th></tr>
+        <tr><td>id</td><td>INT</td><td>Primärschlüssel</td></tr>
+        <tr><td>feed_id</td><td>INT</td><td>FK auf feeds.id</td></tr>
+        <tr><td>url</td><td>VARCHAR</td><td>URL des Posts</td></tr>
+    </table>
+</section>
+
+<section id="classes">
+    <h2>Klassen & Methoden</h2>
+
+    <h3>CopyFeedCommand</h3>
+    <ul>
+        <li><code>run(array $argv)</code>: Parst CLI-Argumente und ruft <code>FeedCopyService::copy()</code> auf.</li>
+    </ul>
+
+    <h3>FeedCopyService</h3>
+    <ul>
+        <li><code>copy(int $id, ?string $only, int $postsLimit): int</code>: Kopiert Feed, Quellen und Posts. Gibt neue Feed-ID zurück.</li>
+    </ul>
+
+    <h3>Repositories</h3>
+    <ul>
+        <li><code>FeedRepository</code>: <code>find(int $id)</code>, <code>insert(array $feed)</code></li>
+        <li><code>InstagramRepository</code>: <code>findByFeed(int $feedId)</code>, <code>insert(int $feedId, array $row)</code></li>
+        <li><code>TikTokRepository</code>: <code>findByFeed(int $feedId)</code>, <code>insert(int $feedId, array $row)</code></li>
+        <li><code>PostRepository</code>: <code>findByFeed(int $feedId, int $limit)</code>, <code>insert(int $feedId, array $post)</code></li>
+    </ul>
+</section>
+
+<section id="examples">
+    <h2>Beispiele</h2>
+    <pre><code># Kopiert Feed mit ID 123 inkl. Quellen, keine Posts
+./bin/copy 123
+
+# Nur Instagram kopieren
+./bin/copy --only=instagram 123
+
+# Instagram + 5 Posts
+./bin/copy --only=instagram --include-posts=5 123</code></pre>
+
+    <h3>Sicherheitshinweis</h3>
+    <ul>
+        <li>Niemals direkt in Produktionsdatenbank schreiben.</li>
+        <li>Lesender Zugriff auf Prod oder Dump in SQLite/Dev-DB bevorzugen.</li>
+        <li>Optional: Erweiterungen für Dry-Run oder JSON/SQL Export möglich.</li>
+    </ul>
+</section>
+
+</body>
+</html>

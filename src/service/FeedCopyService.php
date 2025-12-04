@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Database;
+use App\Database\Database;
 use App\Repository\FeedRepository;
 use App\Repository\InstagramSourceRepository;
 use App\Repository\TikTokSourceRepository;
@@ -17,7 +17,7 @@ class FeedCopyService
 
     public function __construct()
     {
-        $db = (new Database())->connection;
+        $db = (new Database())->getConnection();
 
         $this->feeds = new FeedRepository($db);
         $this->insta = new InstagramSourceRepository($db);
